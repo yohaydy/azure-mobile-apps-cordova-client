@@ -22,7 +22,6 @@ The following code creates a new client object to access the *todolist* mobile a
 Refer [README.md](https://github.com/Azure/azure-mobile-apps-quickstarts/blob/master/README.md) for detailed quickstart instructions.
 
 ### Limitations ###
-* The authentication sub-system is not complete in this release. Authentication requiring a pop-up functionality (including running Cordova applications within Ripple or utilizing an Angular based framework like Ionic) is not supported at this time.
 * Offline Data Synchronization is not supported.
 
 ## Need Help?
