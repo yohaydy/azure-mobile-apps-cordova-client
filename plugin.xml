@@ -1,4 +1,4 @@
-f <?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
  Copyright (c) Microsoft Open Technologies, Inc.  All Rights Reserved.
  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
@@ -20,7 +20,7 @@ f <?xml version="1.0" encoding="UTF-8"?>
             <runs />
         </js-module>
         <js-module src="www/MobileServices.Cordova.js" name="AzureMobileServices">
-            <runs />
+            <clobbers target="WindowsAzure" />
         </js-module>
     </platform>
 
@@ -29,7 +29,7 @@ f <?xml version="1.0" encoding="UTF-8"?>
             <runs />
         </js-module>
         <js-module src="www/MobileServices.Cordova.js" name="AzureMobileServices">
-            <runs />
+            <clobbers target="WindowsAzure" />
         </js-module>
     </platform>
 
@@ -38,7 +38,7 @@ f <?xml version="1.0" encoding="UTF-8"?>
             <runs />
         </js-module>
         <js-module src="www/MobileServices.Cordova.js" name="AzureMobileServices">
-            <runs />
+            <clobbers target="WindowsAzure" />
         </js-module>
     </platform>
 
@@ -47,7 +47,7 @@ f <?xml version="1.0" encoding="UTF-8"?>
             <runs />
         </js-module>
         <js-module src="www/MobileServices.Cordova.js" name="AzureMobileServices">
-            <runs />
+            <clobbers target="WindowsAzure" />
         </js-module>
     </platform>
 
@@ -56,7 +56,7 @@ f <?xml version="1.0" encoding="UTF-8"?>
             <runs />
         </js-module>
         <js-module src="www/MobileServices.Cordova.js" name="AzureMobileServices">
-            <runs />
+            <clobbers target="WindowsAzure" />
         </js-module>
     </platform>
 </plugin>
