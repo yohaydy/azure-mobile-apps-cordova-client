@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved
-// azure-mobile-apps-client - v2.0.0-beta5-40404.165320
+// azure-mobile-apps-client - v2.0.0-beta5-40413.163933
 // ----------------------------------------------------------------------------
 
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.WindowsAzure = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
@@ -8973,10 +8973,10 @@
 },{}],11:[function(_dereq_,module,exports){
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved
-// azure-mobile-apps-client - v2.0.0-beta5-40404.165320
+// azure-mobile-apps-client - v2.0.0-beta5-40413.163933
 // ----------------------------------------------------------------------------
 
-exports.FileVersion = '2.0.0-beta5-40404.165320';
+exports.FileVersion = '2.0.0-beta5-40413.163933';
 
 exports.Resources = {};
 
@@ -9612,16 +9612,12 @@ function isWebAuthBrokerAvailable() {
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\base.js" />
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\ui.js" />
-/// <reference path="Generated\MobileServices.DevIntellisense.js" />
-
 var _ = _dereq_('./Utilities/Extensions'),
     constants = _dereq_('./constants'),
     Validate = _dereq_('./Utilities/Validate'),
     Platform = _dereq_('Platforms/Platform'),
-    MobileServiceTable = _dereq_('./MobileServiceTable').MobileServiceTable,
-    MobileServiceLogin = _dereq_('./MobileServiceLogin').MobileServiceLogin;
+    MobileServiceTable = _dereq_('./MobileServiceTable'),
+    MobileServiceLogin = _dereq_('./MobileServiceLogin');
 
 var Push;
 try {
@@ -9704,12 +9700,6 @@ function MobileServiceClient(applicationUrl) {
     }
     
 }
-
-// Define the module exports
-exports.MobileServiceClient = MobileServiceClient;
-
-// Define the JS bundle exports 
-exports.exports = MobileServiceClient;
 
 MobileServiceClient.prototype.withFilter = function (serviceFilter) {
     /// <summary>
@@ -10128,14 +10118,13 @@ MobileServiceClient._applicationInstallationId = getApplicationInstallationId();
 /// </summary>
 MobileServiceClient._userAgent = Platform.getUserAgent();
 
+// Define the module exports
+module.exports = MobileServiceClient;
+
 },{"./MobileServiceLogin":16,"./MobileServiceTable":17,"./Push/Push":19,"./Utilities/Extensions":22,"./Utilities/Validate":25,"./constants":26,"Platforms/Platform":18}],16:[function(_dereq_,module,exports){
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
-
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\base.js" />
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\ui.js" />
-/// <reference path="Generated\MobileServices.DevIntellisense.js" />
 
 var _ = _dereq_('./Utilities/Extensions');
 var Validate = _dereq_('./Utilities/Validate');
@@ -10194,12 +10183,6 @@ function MobileServiceLogin(client, ignoreFilters) {
         return this._loginState.inProcess;
     };
 }
-
-// Define the module exports
-exports.MobileServiceLogin = MobileServiceLogin;
-
-// Define the JS bundle exports
-exports.exports = MobileServiceLogin; 
 
 MobileServiceLogin.prototype.loginWithOptions = function (provider, options, callback) {
     /// <summary>
@@ -10597,14 +10580,13 @@ function loginWithLoginControl(login, provider, useSingleSignOn, parameters, cal
     }
 }
 
+// Define the module exports
+module.exports = MobileServiceLogin;
+
 },{"./Utilities/Extensions":22,"./Utilities/Validate":25,"Platforms/Platform":18}],17:[function(_dereq_,module,exports){
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
-
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\base.js" />
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\ui.js" />
-/// <reference path="Generated\MobileServices.DevIntellisense.js" />
 
 var _ = _dereq_('./Utilities/Extensions');
 var Validate = _dereq_('./Utilities/Validate');
@@ -10621,7 +10603,7 @@ var tableRouteSeperatorName = "tables";
 var idNames = ["ID", "Id", "id", "iD"];
 var nextLinkRegex = /^(.*?);\s*rel\s*=\s*(\w+)\s*$/;
 
-var MobileServiceSystemProperties = {
+var SystemProperties = {
     None: 0,
     CreatedAt: 1,
     UpdatedAt: 2,
@@ -10666,13 +10648,7 @@ function MobileServiceTable(tableName, client) {
     };
 }
 
-// Define the module exports
-exports.MobileServiceTable = MobileServiceTable;
-
-// Define the JS bundle exports
-exports.exports = {
-    SystemProperties: MobileServiceSystemProperties
-};
+MobileServiceTable.SystemProperties = SystemProperties;
 
 // We have an internal _read method using callbacks since it's used by both
 // table.read(query) and query.read().
@@ -11325,6 +11301,9 @@ function addQueryParametersFeaturesIfApplicable(features, userQueryParameters) {
     return features;
 }
 
+// Define the module exports
+module.exports = MobileServiceTable;
+
 },{"./Utilities/Extensions":22,"./Utilities/Validate":25,"./constants":26,"Platforms/Platform":18,"query.js/lib/Query":8}],18:[function(_dereq_,module,exports){
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved.
@@ -11662,7 +11641,7 @@ function executeRequest(client, method, pushChannel, content, installationId, ca
     Validate.notNullOrEmpty(pushChannel, 'pushChannel');
 
     var headers = { 'If-Modified-Since': 'Mon, 27 Mar 1972 00:00:00 GMT' };
-    headers[constants.features.apiVersionHeaderName] = constants.features.apiVersion;
+    headers[constants.apiVersionHeaderName] = constants.apiVersion;
 
     client._request(
         method,
@@ -11854,10 +11833,6 @@ function whenBridgeLoaded(originRoot, callback) {
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
-
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\base.js" />
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\ui.js" />
-/// <reference path="..\Generated\MobileServices.DevIntellisense.js" />
 
 // Declare JSHint globals
 /*global XMLHttpRequest:false */
@@ -12751,10 +12726,6 @@ exports.getOriginRoot = getOriginRoot;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\base.js" />
-/// <reference path="C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0\ExtensionSDKs\Microsoft.WinJS.1.0\1.0\DesignTime\CommonConfiguration\Neutral\Microsoft.WinJS.1.0\js\ui.js" />
-/// <reference path="..\Generated\MobileServices.DevIntellisense.js" />
-
 var _ = _dereq_('./Extensions');
 var Platform = _dereq_('Platforms/Platform');
 
@@ -13040,9 +13011,9 @@ module.exports = {
 
 // These exports serve as the JS bundle exports
 module.exports = {
-    MobileServiceClient: _dereq_('./MobileServiceClient').exports,
-    MobileServiceLogin: _dereq_('./MobileServiceLogin').exports,
-    MobileServiceTable: _dereq_('./MobileServiceTable').exports
+    MobileServiceClient: _dereq_('./MobileServiceClient'),
+    MobileServiceLogin: _dereq_('./MobileServiceLogin'),
+    MobileServiceTable: _dereq_('./MobileServiceTable')
 };
 
 },{"./MobileServiceClient":15,"./MobileServiceLogin":16,"./MobileServiceTable":17}]},{},[27])(27)
