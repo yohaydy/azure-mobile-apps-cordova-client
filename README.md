@@ -5,9 +5,15 @@ With Microsoft Azure Mobile Apps you can add a scalable backend to your connecte
 
 To learn more, visit our [Developer Center](http://azure.microsoft.com/en-us/services/app-service/mobile/).
 
+The source code for the Azure Mobile Apps Cordova plugin is available at https://github.com/Azure/azure-mobile-apps-js-client. The code is packed in a standalone Javascript bundle and is added to this repository for packaging as a Cordova plugin.
+
 ## Getting Started
 
 If you are new to Mobile Apps, you can get started by following [Mobile Apps documentation](http://azure.microsoft.com/en-us/documentation/articles/app-service-mobile-value-prop/).
+
+### Offline data sync (Preview)
+
+Offline data sync is a feature of Azure Mobile Apps that makes it easy for developers to create apps that are functional without a network connection. Offline data sync is now available in the Cordova SDK. For more details refer https://github.com/Azure/azure-mobile-apps-js-client.
 
 ### Sample usage ###
 The following code creates a new client object to access the *todolist* mobile apps backend and create a new proxy object for the *TodoItem* table.
@@ -17,7 +23,7 @@ The following code creates a new client object to access the *todolist* mobile a
         );
 
     var todoTable = mobileAppsClient.getTable('TodoItem');
-
+    
 ### Quickstart ###
 Refer [README.md](https://github.com/Azure/azure-mobile-apps-quickstarts/blob/master/README.md) for detailed quickstart instructions.
 
