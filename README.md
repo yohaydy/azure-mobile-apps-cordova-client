@@ -28,7 +28,7 @@ The following code creates a new client object to access the *todolist* mobile a
 Refer [README.md](https://github.com/Azure/azure-mobile-apps-quickstarts/blob/master/README.md) for detailed quickstart instructions.
 
 ### Limitations ###
-* Offline Data Synchronization is not supported.
+* Offline Data Synchronization is currently a beta feature. Detailed limitations are documented at https://github.com/Azure/azure-mobile-apps-js-client.
 
 ## Need Help?
 
