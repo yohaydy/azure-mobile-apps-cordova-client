@@ -13,7 +13,7 @@ If you are new to Mobile Apps, you can get started by following [Mobile Apps doc
 
 ### Offline data sync (Preview)
 
-Offline data sync is a feature of Azure Mobile Apps that makes it easy for developers to create apps that are functional without a network connection. Offline data sync is now available in the Cordova SDK. For detailed documentation, known issues and future work refer https://github.com/Azure/azure-mobile-apps-js-client.
+Offline data sync is a feature of Azure Mobile Apps that makes it easy for developers to create apps that are functional without a network connection. Offline data sync is now available in the Cordova SDK. For detailed documentation, known issues and future work refer this [README](https://github.com/azure/azure-mobile-apps-js-client/tree/cordova-2.0.0-beta6).
 
 ### Sample usage ###
 The following code creates a new client object to access the *todolist* mobile apps backend and create a new proxy object for the *TodoItem* table.
