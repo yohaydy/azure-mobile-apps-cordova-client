@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved
-// azure-mobile-apps-client - v2.0.0-beta6-40727.145145
+// azure-mobile-apps-client - v2.0.0-beta6-40809.112219
 // ----------------------------------------------------------------------------
 
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.WindowsAzure = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
@@ -3073,6 +3073,13 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
                 case 'Or':
                     this.statement.sql += ' OR ';
                     break;
+                case 'Concat':
+                    if (this.flavor === 'sqlite') {
+                        this.statement.sql += ' || ';
+                    } else {
+                        this.statement.sql += ' + ';
+                    }
+                    break;
                 case 'Add':
                     this.statement.sql += ' + ';
                     break;
@@ -3290,15 +3297,18 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             this.statement.sql += ')';
         }
         else if (functionName == 'concat') {
-            // Rewrite as an string addition with appropriate conversions.
-            // Note: due to sql operator precidence, we only need to inject a
-            // single conversion - the other will be upcast to string.
-            if (!isConstantOfType(args[0], 'string')) {
-                args[0] = new expressions.Convert(helpers.getSqlType(''), args[0]);
-            } else if (!isConstantOfType(args[1], 'string')) {
-                args[1] = new expressions.Convert(helpers.getSqlType(''), args[1]);
+            var concat;
+            if (this.flavor !== 'sqlite') {
+                // Rewrite as an string addition with appropriate conversions.
+                // Note: due to sql operator precidence, we only need to inject a
+                // single conversion - the other will be upcast to string.
+                if (!isConstantOfType(args[0], 'string')) {
+                    args[0] = new expressions.Convert(helpers.getSqlType(''), args[0]);
+                } else if (!isConstantOfType(args[1], 'string')) {
+                    args[1] = new expressions.Convert(helpers.getSqlType(''), args[1]);
+                }
             }
-            var concat = new expressions.Binary(args[0], args[1], 'Add');
+            var concat = new expressions.Binary(args[0], args[1], 'Concat');
             this.visit(concat);
         }
         else if (functionName == 'tolower') {
@@ -3324,11 +3334,19 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             this.statement.sql += '))';
         }
         else if (functionName == 'indexof') {
-            this.statement.sql += "(PATINDEX('%' + ";
-            this.visit(args[0]);
-            this.statement.sql += " + '%', ";
-            this.visit(instance);
-            this.statement.sql += ') - 1)';
+            if (this.flavor === 'sqlite') {
+                this.statement.sql += "(INSTR(";
+                this.visit(args[0]);
+                this.statement.sql += ", ";
+                this.visit(instance);
+                this.statement.sql += ') - 1)';
+            } else {
+                this.statement.sql += "(PATINDEX('%' + ";
+                this.visit(args[0]);
+                this.statement.sql += " + '%', ";
+                this.visit(instance);
+                this.statement.sql += ') - 1)';
+            }
         }
         else if (functionName == 'replace') {
             this.statement.sql += "REPLACE(";
@@ -3340,7 +3358,11 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             this.statement.sql += ')';
         }
         else if (functionName == 'substring') {
-            this.statement.sql += 'SUBSTRING(';
+            if (this.flavor === 'sqlite') {
+                this.statement.sql += 'SUBSTR(';
+            } else {
+                this.statement.sql += 'SUBSTRING(';
+            }
             this.visit(instance);
 
             this.statement.sql += ", ";
@@ -15877,6 +15899,10 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
     assert(this.negative === 0, 'imaskn works only with positive numbers');
 
+    if (this.length <= s) {
+      return this;
+    }
+
     if (r !== 0) {
       s++;
     }
@@ -28181,22 +28207,26 @@ if (typeof Object.create === 'function') {
 }
 
 },{}],116:[function(_dereq_,module,exports){
-/**
- * Determine if an object is Buffer
+/*!
+ * Determine if an object is a Buffer
  *
- * Author:   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
- * License:  MIT
- *
- * `npm install is-buffer`
+ * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * @license  MIT
  */
 
+// The _isBuffer check is for Safari 5-7 support, because it's missing
+// Object.prototype.constructor. Remove this eventually
 module.exports = function (obj) {
-  return !!(obj != null &&
-    (obj._isBuffer || // For Safari 5-7 (missing Object.prototype.constructor)
-      (obj.constructor &&
-      typeof obj.constructor.isBuffer === 'function' &&
-      obj.constructor.isBuffer(obj))
-    ))
+  return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
+}
+
+function isBuffer (obj) {
+  return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
+}
+
+// For Node v0.10 support. Remove this eventually.
+function isSlowBuffer (obj) {
+  return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
 },{}],117:[function(_dereq_,module,exports){
@@ -31761,7 +31791,6 @@ function nextTick(fn, arg1, arg2, arg3) {
 }).call(this,_dereq_('_process'))
 },{"_process":133}],133:[function(_dereq_,module,exports){
 // shim for using process in browser
-
 var process = module.exports = {};
 
 // cached from whatever global is present so that test runners that stub it
@@ -31773,21 +31802,63 @@ var cachedSetTimeout;
 var cachedClearTimeout;
 
 (function () {
-  try {
-    cachedSetTimeout = setTimeout;
-  } catch (e) {
-    cachedSetTimeout = function () {
-      throw new Error('setTimeout is not defined');
+    try {
+        cachedSetTimeout = setTimeout;
+    } catch (e) {
+        cachedSetTimeout = function () {
+            throw new Error('setTimeout is not defined');
+        }
     }
-  }
-  try {
-    cachedClearTimeout = clearTimeout;
-  } catch (e) {
-    cachedClearTimeout = function () {
-      throw new Error('clearTimeout is not defined');
+    try {
+        cachedClearTimeout = clearTimeout;
+    } catch (e) {
+        cachedClearTimeout = function () {
+            throw new Error('clearTimeout is not defined');
+        }
     }
-  }
 } ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
 var queue = [];
 var draining = false;
 var currentQueue;
@@ -31812,7 +31883,7 @@ function drainQueue() {
     if (draining) {
         return;
     }
-    var timeout = cachedSetTimeout.call(null, cleanUpNextTick);
+    var timeout = runTimeout(cleanUpNextTick);
     draining = true;
 
     var len = queue.length;
@@ -31829,7 +31900,7 @@ function drainQueue() {
     }
     currentQueue = null;
     draining = false;
-    cachedClearTimeout.call(null, timeout);
+    runClearTimeout(timeout);
 }
 
 process.nextTick = function (fun) {
@@ -31841,7 +31912,7 @@ process.nextTick = function (fun) {
     }
     queue.push(new Item(fun, args));
     if (queue.length === 1 && !draining) {
-        cachedSetTimeout.call(null, drainQueue, 0);
+        runTimeout(drainQueue);
     }
 };
 
@@ -38529,10 +38600,10 @@ exports.createContext = Script.createContext = function (context) {
 },{"indexof":114}],181:[function(_dereq_,module,exports){
 // ----------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved
-// azure-mobile-apps-client - v2.0.0-beta6-40727.145145
+// azure-mobile-apps-client - v2.0.0-beta6-40809.112219
 // ----------------------------------------------------------------------------
 
-exports.FileVersion = '2.0.0-beta6-40727.145145';
+exports.FileVersion = '2.0.0-beta6-40809.112219';
 
 exports.Resources = {};
 
@@ -44012,6 +44083,7 @@ function MobileServiceSyncContext(client) {
         operationTableManager,
         pullManager,
         pushManager,
+        purgeManager,
         isInitialized = false,
         syncTaskRunner = taskRunner(), // Used to run push / pull tasks
         storeTaskRunner = taskRunner(); // Used to run insert / update / delete tasks on the store
@@ -44161,7 +44233,7 @@ function MobileServiceSyncContext(client) {
                 throw new Error('MobileServiceSyncContext not initialized');
             }
 
-            return operationTableManager.getLoggingOperation(tableName, 'delete', instance.id).then(function(loggingOperation) {
+            return operationTableManager.getLoggingOperation(tableName, 'delete', instance).then(function(loggingOperation) {
                 return store.executeBatch([
                     {
                         action: 'delete',
@@ -44198,7 +44270,7 @@ function MobileServiceSyncContext(client) {
      * 
      * Error handling is delegated to the pushHandler property of MobileServiceSyncContext instance.
      * The pushHandler is an object with the following property:
-     * - function onConflict (serverRecord, clientRecord, pushError) - this is called when a conflict is encountered while pushing a record to the server.
+     * - function onConflict (pushError) - this is called when a conflict is encountered while pushing a record to the server.
      * - function onError (pushError) - this is called when an error is encountered while pushing a record to the server.
      * 
      * @returns A promise that is fulfilled when all pending operations are pushed OR is rejected if the push fails or is cancelled.  
@@ -44262,7 +44334,7 @@ function MobileServiceSyncContext(client) {
                 throw new Error('Record with ID ' + existingRecord.id + ' already exists in the table ' + tableName);
             }
         }).then(function() {
-            return operationTableManager.getLoggingOperation(tableName, action, instance.id);
+            return operationTableManager.getLoggingOperation(tableName, action, instance);
         }).then(function(loggingOperation) {
             return store.executeBatch([
                 {
@@ -44446,7 +44518,9 @@ var Validate = _dereq_('../Utilities/Validate'),
     _ = _dereq_('../Utilities/Extensions'),
     Query = _dereq_('azure-query-js').Query;
 
-var operationTableName = tableConstants.operationTableName;
+var idPropertyName = tableConstants.idPropertyName,
+    versionColumnName = tableConstants.sysProps.versionColumnName,
+    operationTableName = tableConstants.operationTableName;
     
 function createOperationTableManager(store) {
 
@@ -44459,15 +44533,22 @@ function createOperationTableManager(store) {
         lockedOperationId,
         maxId;
 
-    return {
+    var api = {
         initialize: initialize,
         lockOperation: lockOperation,
         unlockOperation: unlockOperation,
         readPendingOperations: readPendingOperations,
         readFirstPendingOperationWithData: readFirstPendingOperationWithData,
         removeLockedOperation: removeLockedOperation,
-        getLoggingOperation: getLoggingOperation
+        getLoggingOperation: getLoggingOperation,
+        getMetadata: getMetadata
     };
+
+    // Exports for testing purposes only
+    api._getOperationForInsertingLog = getOperationForInsertingLog;
+    api._getOperationForUpdatingLog = getOperationForUpdatingLog;
+
+    return api;
     
     /**
      * Defines the operation table in the local store.
@@ -44483,7 +44564,8 @@ function createOperationTableManager(store) {
                 id: ColumnType.Integer,
                 tableName: ColumnType.String,
                 action: ColumnType.String,
-                itemId: ColumnType.String
+                itemId: ColumnType.String,
+                metadata: ColumnType.Object 
             }
         }).then(function() {
             return getMaxOperationId();
@@ -44534,11 +44616,11 @@ function createOperationTableManager(store) {
      * 
      * @param tableName Name of the table on which the action is performed
      * @param action Action performed on the table. Valid actions are 'insert', 'update' or 'delete'
-     * @param itemId ID of the record that is being inserted, updated or deleted.
+     * @param item Record that is being inserted, updated or deleted. In case of 'delete', all properties other than id will be ignored.
      * 
      * @returns Promise that is resolved with the logging operation. In case of a failure the promise is rejected.
      */
-    function getLoggingOperation(tableName, action, itemId) {
+    function getLoggingOperation(tableName, action, item) {
         
         // Run as a single task to avoid task interleaving.
         return runner.run(function() {
@@ -44548,13 +44630,15 @@ function createOperationTableManager(store) {
             Validate.notNull(action);
             Validate.isString(action);
             
-            Validate.isValidId(itemId);
-            
+            Validate.notNull(item);
+            Validate.isObject(item);
+            Validate.isValidId(item[idPropertyName]);
+
             if (!isInitialized) {
                 throw new Error('Operation table manager is not initialized');
             }
             
-            return readPendingOperations(tableName, itemId).then(function(pendingOperations) {
+            return readPendingOperations(tableName, item[idPropertyName]).then(function(pendingOperations) {
                 
                 // Multiple operations can be pending for <tableName, itemId> due to an opertion being locked in the past.
                 // Get the last pending operation
@@ -44570,11 +44654,11 @@ function createOperationTableManager(store) {
                 }
 
                 if (condenseAction === 'add') { // Add a new operation
-                    return insertLoggingOperation(tableName, action, itemId);
+                    return getOperationForInsertingLog(tableName, action, item);
                 } else if (condenseAction === 'modify') { // Edit the pending operation's action to be the new action.
-                    return updateLoggingOperation(pendingOperation.id, action /* new action */);
+                    return getOperationForUpdatingLog(pendingOperation.id, tableName, action /* new action */, item);
                 } else if (condenseAction === 'remove') { // Remove the earlier log from the operation table
-                    return deleteLoggingOperation(pendingOperation.id);
+                    return getOperationForDeletingLog(pendingOperation.id);
                 } else if (condenseAction === 'nop') { // NO OP. Nothing to be logged
                     return; 
                 } else  { // Error
@@ -44734,42 +44818,82 @@ function createOperationTableManager(store) {
     /**
      * Gets the operation that will insert a new record in the operation table.
      */
-    function insertLoggingOperation(tableName, action, itemId) {
-        return {
-            tableName: operationTableName,
-            action: 'upsert',
-            data: {
-                id: ++maxId,
-                tableName: tableName,
-                action: action,
-                itemId: itemId
-            }
-        };
+    function getOperationForInsertingLog(tableName, action, item) {
+        return api.getMetadata(tableName, action, item).then(function(metadata) {
+            return {
+                tableName: operationTableName,
+                action: 'upsert',
+                data: {
+                    id: ++maxId,
+                    tableName: tableName,
+                    action: action,
+                    itemId: item[idPropertyName],
+                    metadata: metadata
+                }
+            };
+        });
     }
     
     /**
      * Gets the operation that will update an existing record in the operation table.
      */
-    function updateLoggingOperation(id, action) {
-        return {
-            tableName: operationTableName,
-            action: 'upsert',
-            data: {
-                id: id,
-                action: action
-            }
-        };
+    function getOperationForUpdatingLog(operationId, tableName, action, item) {
+        return api.getMetadata(tableName, action, item).then(function(metadata) {
+            return {
+                tableName: operationTableName,
+                action: 'upsert',
+                data: {
+                    id: operationId,
+                    action: action,
+                    metadata: metadata
+                }
+            };
+        });
     }
     
     /**
      * Gets an operation that will delete a record from the operation table.
      */
-    function deleteLoggingOperation(id) {
+    function getOperationForDeletingLog(operationId) {
         return {
             tableName: operationTableName,
             action: 'delete',
-            id: id
+            id: operationId
         };
+    }
+
+    /**
+     * Gets the metadata to associate with a log record in the operation table
+     * 
+     * @param action 'insert', 'update' and 'delete' correspond to the insert, update and delete operations.
+     *               'upsert' is a special action that is used only in the context of conflict handling.
+     */
+    function getMetadata(tableName, action, item) {
+        
+        return Platform.async(function(callback) {
+            callback();
+        })().then(function() {
+            var metadata = {};
+
+            // If action is update and item defines version property OR if action is insert / update,
+            // define metadata.version to be the item's version property
+            if (action === 'upsert' || 
+                action === 'insert' ||
+                (action === 'update' && item.hasOwnProperty(versionColumnName))) {
+                metadata[versionColumnName] = item[versionColumnName];
+                return metadata;
+            } else if (action == 'update' || action === 'delete') { // Read item's version property from the table
+                return store.lookup(tableName, item[idPropertyName], true /* suppressRecordNotFoundError */).then(function(result) {
+                    if (result) {
+                        metadata[versionColumnName] = result[versionColumnName];
+                    }
+                    return metadata;
+                });
+            } else {
+                throw new Error('Invalid action ' + action);
+            }
+        });
+        
     }
 
     /**
@@ -45228,6 +45352,9 @@ function createPushManager(client, store, storeTaskRunner, operationTableManager
     var pushTaskRunner = taskRunner(),
         lastProcessedOperationId,
         pushConflicts,
+        lastFailedOperationId,
+        retryCount,
+        maxRetryCount = 5,
         pushHandler;
     
     return {
@@ -45254,6 +45381,8 @@ function createPushManager(client, store, storeTaskRunner, operationTableManager
     // Resets the state for starting a new push operation
     function reset() {
         lastProcessedOperationId = -1; // Initialize to an invalid operation id
+        lastFailedOperationId = -1; // Initialize to an invalid operation id
+        retryCount = 0;
         pushConflicts = [];
     }
     
@@ -45280,11 +45409,22 @@ function createPushManager(client, store, storeTaskRunner, operationTableManager
             }, function(error) {
                 // failed to push
                 return unlockPendingOperation().then(function() {
-                    pushError = createPushError(store, storeTaskRunner, currentOperation, error);
+                    pushError = createPushError(store, operationTableManager, storeTaskRunner, currentOperation, error);
                     //TODO: If the conflict isn't resolved but the error is marked as handled by the user,
                     //we can end up in an infinite loop. Guard against this by capping the max number of 
                     //times handlePushError can be called for the same record.
-                    return handlePushError(pushError, pushHandler);
+
+                    // We want to reset the retryCount when we move on to the next record
+                    if (lastFailedOperationId !== currentOperation.logRecord.id) {
+                        lastFailedOperationId = currentOperation.logRecord.id;
+                        retryCount = 0;
+                    }
+
+                    // Cap the number of times error handling logic is invoked for the same record
+                    if (retryCount < maxRetryCount) {
+                        ++retryCount;
+                        return handlePushError(pushError, pushHandler);
+                    }
                 });
             }).then(function() {
                 if (!pushError) { // no push error
@@ -45362,7 +45502,9 @@ function createPushManager(client, store, storeTaskRunner, operationTableManager
                         return store.upsert(operation.logRecord.tableName, result); // Upsert the result of update into the local table
                     });
                 case 'delete':
-                    return mobileServiceTable.del({id: operation.logRecord.itemId});
+                    // Use the version info form the log record.
+                    operation.logRecord.metadata = operation.logRecord.metadata || {};
+                    return mobileServiceTable.del({id: operation.logRecord.itemId, version: operation.logRecord.metadata.version});
                 default:
                     throw new Error('Unsupported action ' + operation.logRecord.action);
             }
@@ -45402,7 +45544,7 @@ var operationTableName = tableConstants.operationTableName,
  * Creates a pushError object that wraps the low level error encountered while pushing
  * and adds other useful methods for error handling.
  */
-function createPushError(store, storeTaskRunner, pushOperation, operationError) {
+function createPushError(store, operationTableManager, storeTaskRunner, pushOperation, operationError) {
     
     return {
         isHandled: false,
@@ -45556,6 +45698,7 @@ function createPushError(store, storeTaskRunner, pushOperation, operationError) 
     
     /**
      * Updates the client data record associated with the current operation.
+     * If required, the metadata in the log record will also be associated.
      *
      * @param newValue New value of the data record. 
      * 
@@ -45582,10 +45725,25 @@ function createPushError(store, storeTaskRunner, pushOperation, operationError) 
 
             //TODO: Do we need to disallow updating record if the record has been deleted after
             //we attempted push?
-                        
-            return store.upsert(pushOperation.logRecord.tableName, newValue).then(function() {
-                self.isHandled = this;
+
+            return operationTableManager.getMetadata(pushOperation.logRecord.tableName, 'upsert', newValue).then(function(metadata) {
+                pushOperation.logRecord.metadata = metadata;
+                return store.executeBatch([
+                    { // Update the log record
+                        tableName: operationTableName,
+                        action: 'upsert',
+                        data: pushOperation.logRecord
+                    },
+                    { // Update the record in the local table
+                        tableName: pushOperation.logRecord.tableName,
+                        action: 'upsert',
+                        data: newValue
+                    }
+                ]).then(function() {
+                    self.isHandled = this;
+                });
             });
+
         });
     }
     
@@ -45601,8 +45759,9 @@ function createPushError(store, storeTaskRunner, pushOperation, operationError) 
      * data table in the local store.
      * 
      * @param newAction New type of the operation. Valid values are 'insert', 'update' and 'delete'
-     * @param [newClientRecord] New value of the client record. The new record ID should match the original record ID. Also,
-     *                         a new record value cannot be specified if the new action is 'delete'
+     * @param [newClientRecord] New value of the client record. The new record ID should match the original record ID.
+     *                          If newAction is 'delete', only the version property will be read from newClientRecord. This is useful if
+     *                          the conflict handler changes an insert/update action to delete and wants to udpate the version.
      * 
      * @returns A promise that is fulfilled when the action is changed and, optionally, the data record is updated / deleted.
      */
@@ -45615,22 +45774,32 @@ function createPushError(store, storeTaskRunner, pushOperation, operationError) 
                     action: 'upsert',
                     data: makeCopy(pushOperation.logRecord)
                 };
-            
+
+            // If a new value for the record is specified, use the version property to update the metadata
+            // If not, there is nothing that needs to be changed in the metadata. Just use the metadata we already have.
+            if (newClientRecord) {
+                if (!newClientRecord.id) {
+                    throw new Error('New client record value must specify the record ID');
+                }
+                    
+                if (newClientRecord.id !== pushOperation.logRecord.itemId) {
+                    throw new Error('New client record value cannot change the record ID. Original ID: ' +
+                                    pushOperation.logRecord.id + ' New ID: ' + newClientRecord.id);
+                }
+
+                // FYI: logOperation.data and pushOperation.data are not the same thing!
+                logOperation.data.metadata = logOperation.data.metadata || {};
+                logOperation.data.metadata[tableConstants.sysProps.versionColumnName] = newClientRecord[tableConstants.sysProps.versionColumnName];
+            }
+
             if (newAction === 'insert' || newAction === 'update') {
                 
                 // Change the action as specified
+                var oldAction = logOperation.data.action;
                 logOperation.data.action = newAction;
-                
+
                 // Update the client record, if a new value is specified
                 if (newClientRecord) {
-                    
-                    if (!newClientRecord.id) {
-                        throw new Error('New client record value must specify the record ID');
-                    }
-                    
-                    if (newClientRecord.id !== pushOperation.logRecord.itemId) {
-                        throw new Error('New client record value cannot change the record ID. Original ID: ' + pushOperation.logRecord.id + ' New ID: ' + newClientRecord.id);
-                    }
                     
                     dataOperation = {
                         tableName: pushOperation.logRecord.tableName,
@@ -45638,17 +45807,20 @@ function createPushError(store, storeTaskRunner, pushOperation, operationError) 
                         data: newClientRecord
                     };
                     
+                } else if (oldAction !== 'insert' && oldAction !== 'update') {
+
+                    // If we are here, it means we are changing the action from delete to insert / update. 
+                    // In such a case we expect newClientRecord to be non-null as we won't otherwise know what to insert / update.
+                    // Example: changing delete to insert without specifying a newClientRecord is meaningless.
+                    throw new Error('Changing action from ' + oldAction + ' to ' + newAction +
+                                    ' without specifying a value for the associated record is not allowed!');
                 }
                 
             } else if (newAction === 'delete' || newAction === 'del') {
 
-                if (newClientRecord) {
-                    throw new Error('Cannot specify a new value for the client record if the new action is delete');
-                }
-
                 // Change the action to 'delete'
                 logOperation.data.action = 'delete';
-                
+
                 // Delete the client record as the new action is 'delete'
                 dataOperation = {
                     tableName: pushOperation.logRecord.tableName,
@@ -45661,8 +45833,7 @@ function createPushError(store, storeTaskRunner, pushOperation, operationError) 
             }
             
             // Execute the log and data operations
-            var operations = dataOperation ? [logOperation, dataOperation] : [logOperation];
-            return store.executeBatch(operations).then(function() {
+            return store.executeBatch([logOperation, dataOperation]).then(function() {
                 self.isHandled = true;
             });
         });
@@ -45703,7 +45874,7 @@ function handlePushError(pushError, pushHandler) {
         if (pushError.isConflict()) {
             if (pushHandler && pushHandler.onConflict) {
                 // NOTE: value of server record will not be available in case of 409.
-                return pushHandler.onConflict(pushError.getServerRecord(), pushError.getClientRecord(), pushError);
+                return pushHandler.onConflict(pushError);
             }
         } else if (pushHandler && pushHandler.onError) {
             return pushHandler.onError(pushError);
